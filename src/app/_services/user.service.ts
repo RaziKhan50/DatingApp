@@ -5,6 +5,7 @@ import { Observable } from 'rxjs';
 import { User } from '../_models/User';
 import { PagintedResult } from '../_models/pagination';
 import { map } from 'rxjs/operators';
+import { AlertifyService } from './alertify.service';
 
 
 @Injectable({
@@ -13,9 +14,11 @@ import { map } from 'rxjs/operators';
 export class UserService {
   baseUrl = environment.apiUrl;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, alertify: AlertifyService) {}
 
-    getUsers(page?, itemsPerPage?, userParams?): Observable<PagintedResult<User[]>> {
+    getUsers(page?, itemsPerPage?, userParams?, likesParam?): Observable<PagintedResult<User[]>> {
+      // tslint:disable-next-line: no-debugger
+      debugger;
       const paginatedResult: PagintedResult<User[]> = new PagintedResult<User[]>();
       let params = new HttpParams();
       if ( page != null && itemsPerPage != null) {
@@ -23,20 +26,27 @@ export class UserService {
        params = params.append('PageSize', itemsPerPage);
       }
       if (userParams != null) {
-        params = params.append('minAge', userParams.minAge);
-        params = params.append('maxAge', userParams.maxAge);
-        params = params.append('gender', userParams.gender);
+        params = params.append('minAge',  userParams.minAge );
+        params = params.append('maxAge',  userParams.maxAge );
+        params = params.append('gender',  userParams.gender );
         params = params.append('orderBy', userParams.orderBy);
       }
 
+      // tslint:disable-next-line: triple-equals
+      if (likesParam == 'Likers') {
+        params = params.append('likers', 'true');
+      }
 
-
+      // tslint:disable-next-line: triple-equals
+      if (likesParam == 'Likees') {
+         params = params.append('likees', 'true');
+      }
       return this.http.get<User[]>(this.baseUrl + 'users', { observe: 'response', params})
       .pipe(
-        map(Response => {
-            paginatedResult.result = Response.body;
-            if (Response.headers.get('Pagination') != null) {
-              paginatedResult.pagination = JSON.parse(Response.headers.get('Pagination'));
+        map(response => {
+            paginatedResult.result = response.body;
+            if (response.headers.get('Pagination') != null) {
+              paginatedResult.pagination = JSON.parse(response.headers.get('Pagination'));
             }
             return paginatedResult;
         })
@@ -55,5 +65,9 @@ export class UserService {
   }
   deletePhoto(userId: number, id: number) {
          return this.http.delete(this.baseUrl + 'users/' + userId + '/photos/' + id);
+  }
+
+  sendLike(id: number, recipientId: number) {
+     return this.http.post(this.baseUrl + 'users/' + id + '/like/' + recipientId, {});
   }
 }
